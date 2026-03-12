@@ -1,8 +1,9 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, TextInput } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { styles } from './Home.styles';
+import { supabase } from '../services/supabase';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -11,17 +12,49 @@ type Props = {
 };
 
 export default function Home({ navigation }: Props) {
-    const [code, setCode] = React.useState('');
+    const [code, setCode] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const handleCreateRoom = () => {
-        // Logic for RF01 - Criação de Sala
-        const roomId = 'sala-' + Math.floor(100000 + Math.random() * 900000).toString();
-        navigation.navigate('SalaAtiva', { roomId });
+    const handleCreateRoom = async () => {
+        setLoading(true);
+        const roomId = Math.floor(100000 + Math.random() * 900000).toString();
+        const deviceId = Math.random().toString(36).substring(7); // In a real app, use DeviceInfo
+
+        const { error } = await supabase.from('rooms').insert([
+            {
+                id: Math.random().toString(), // Mudar no banco real para geração auto UUID
+                code: roomId,
+                host_id: deviceId,
+                status: 'active',
+                tip_split_mode: 'equal',
+                bill_split_mode: 'equal',
+                last_activity_at: new Date().toISOString()
+            }
+        ]);
+
+        if (error) {
+            console.warn("Could not create room in Supabase (Expected if credentials are not set)", error);
+        }
+
+        setLoading(false);
+        navigation.navigate('SalaAtiva', { roomId: `sala-${roomId}` });
     };
 
-    const handleJoinRoom = () => {
+    const handleJoinRoom = async () => {
         if (code.length === 6) {
-            // Logic for RF03 - Entrada via Código
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('rooms')
+                .select('*')
+                .eq('code', code)
+                .single();
+
+            if (error || !data) {
+                console.warn("Room not found in Supabase (Expected if credentials are not set)", error);
+                Alert.alert("Erro", "Sala não encontrada. Como o banco de dados não está configurado, simulando entrada offline.");
+            }
+
+            setLoading(false);
             navigation.navigate('SalaAtiva', { roomId: `sala-${code}` });
         }
     };
@@ -30,8 +63,8 @@ export default function Home({ navigation }: Props) {
         <View style={styles.container}>
             <Text style={styles.title}>Racha Conta</Text>
 
-            <TouchableOpacity style={styles.button} onPress={handleCreateRoom}>
-                <Text style={styles.buttonText}>Criar Nova Sala</Text>
+            <TouchableOpacity style={styles.button} onPress={handleCreateRoom} disabled={loading}>
+                {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Criar Nova Sala</Text>}
             </TouchableOpacity>
 
             <View style={styles.separator} />
@@ -48,9 +81,9 @@ export default function Home({ navigation }: Props) {
             <TouchableOpacity
                 style={[styles.button, code.length !== 6 && styles.buttonDisabled]}
                 onPress={handleJoinRoom}
-                disabled={code.length !== 6}
+                disabled={code.length !== 6 || loading}
             >
-                <Text style={styles.buttonText}>Entrar na Sala</Text>
+                {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Entrar na Sala</Text>}
             </TouchableOpacity>
         </View>
     );

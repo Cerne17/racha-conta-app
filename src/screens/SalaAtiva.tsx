@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Modal, TextInput } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { styles } from './SalaAtiva.styles';
+import { useRoom, Item } from '../hooks/useRoom';
 
 type SalaAtivaScreenRouteProp = RouteProp<RootStackParamList, 'SalaAtiva'>;
 
@@ -10,34 +11,24 @@ type Props = {
     route: SalaAtivaScreenRouteProp;
 };
 
-interface Item {
-    id: string;
-    nome: string;
-    preco: number;
-}
-
 export default function SalaAtiva({ route }: Props) {
     const { roomId } = route.params;
-    const [items, setItems] = useState<Item[]>([]);
+    const { items, room, loading, addItem } = useRoom(roomId);
+
     const [modalVisible, setModalVisible] = useState(false);
     const [newItemName, setNewItemName] = useState('');
     const [newItemPrice, setNewItemPrice] = useState('');
 
-    const total = items.reduce((sum, item) => sum + item.preco, 0);
+    const total = items.reduce((sum, item) => sum + item.price, 0);
 
-    const handleAddItem = () => {
+    const handleAddItem = async () => {
         if (!newItemName || !newItemPrice) return;
 
         const priceValue = parseInt(newItemPrice, 10) / 100;
         if (isNaN(priceValue) || priceValue <= 0) return;
 
-        const newItem: Item = {
-            id: Math.random().toString(36).substring(7),
-            nome: newItemName,
-            preco: priceValue,
-        };
+        await addItem(newItemName, priceValue);
 
-        setItems((prev) => [...prev, newItem]);
         setNewItemName('');
         setNewItemPrice('');
         setModalVisible(false);
@@ -60,10 +51,18 @@ export default function SalaAtiva({ route }: Props) {
 
     const renderItem = ({ item }: { item: Item }) => (
         <View style={styles.itemRow}>
-            <Text style={styles.itemName}>{item.nome}</Text>
-            <Text style={styles.itemPrice}>{formatCurrency(item.preco)}</Text>
+            <Text style={styles.itemName}>{item.name}</Text>
+            <Text style={styles.itemPrice}>{formatCurrency(item.price)}</Text>
         </View>
     );
+
+    if (loading) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color="#007AFF" />
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
