@@ -28,9 +28,8 @@ export default function SalaAtiva({ route }: Props) {
     const handleAddItem = () => {
         if (!newItemName || !newItemPrice) return;
 
-        // Replace comma with dot if user typed it
-        const priceValue = parseFloat(newItemPrice.replace(',', '.'));
-        if (isNaN(priceValue)) return;
+        const priceValue = parseInt(newItemPrice, 10) / 100;
+        if (isNaN(priceValue) || priceValue <= 0) return;
 
         const newItem: Item = {
             id: Math.random().toString(36).substring(7),
@@ -42,6 +41,17 @@ export default function SalaAtiva({ route }: Props) {
         setNewItemName('');
         setNewItemPrice('');
         setModalVisible(false);
+    };
+
+    const handlePriceChange = (text: string) => {
+        const digits = text.replace(/\D/g, '');
+        setNewItemPrice(digits);
+    };
+
+    const getFormattedPriceInput = () => {
+        if (!newItemPrice) return '';
+        const numericValue = parseInt(newItemPrice, 10) / 100;
+        return numericValue.toFixed(2).replace('.', ',');
     };
 
     const formatCurrency = (value: number) => {
@@ -117,8 +127,8 @@ export default function SalaAtiva({ route }: Props) {
                             placeholder="Ex: 15,50"
                             placeholderTextColor="#999"
                             keyboardType="numeric"
-                            value={newItemPrice}
-                            onChangeText={setNewItemPrice}
+                            value={getFormattedPriceInput()}
+                            onChangeText={handlePriceChange}
                         />
 
                         <View style={styles.modalButtons}>
