@@ -22,7 +22,6 @@ export default function Home({ navigation }: Props) {
 
         const { error } = await supabase.from('rooms').insert([
             {
-                id: Math.random().toString(), // Mudar no banco real para geração auto UUID
                 code: roomId,
                 host_id: deviceId,
                 status: 'active',
@@ -32,11 +31,14 @@ export default function Home({ navigation }: Props) {
             }
         ]);
 
+        setLoading(false);
+
         if (error) {
-            console.warn("Could not create room in Supabase (Expected if credentials are not set)", error);
+            console.error("Erro ao criar sala no Supabase:", error.message, error.details);
+            Alert.alert("Erro ao criar sala", error.message);
+            return;
         }
 
-        setLoading(false);
         navigation.navigate('SalaAtiva', { roomId: `sala-${roomId}`, isHost: true });
     };
 
@@ -49,12 +51,14 @@ export default function Home({ navigation }: Props) {
                 .eq('code', code)
                 .single();
 
+            setLoading(false);
+
             if (error || !data) {
-                console.warn("Room not found in Supabase (Expected if credentials are not set)", error);
-                Alert.alert("Erro", "Sala não encontrada. Como o banco de dados não está configurado, simulando entrada offline.");
+                console.error("Erro ao buscar sala:", error?.message, error?.details);
+                Alert.alert("Erro", error ? error.message : "Sala não encontrada.");
+                return;
             }
 
-            setLoading(false);
             navigation.navigate('SalaAtiva', { roomId: `sala-${code}`, isHost: false });
         }
     };

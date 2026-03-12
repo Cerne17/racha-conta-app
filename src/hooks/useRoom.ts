@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Alert } from 'react-native';
 import { supabase } from '../services/supabase';
 
 export interface Item {
@@ -35,20 +36,11 @@ export function useRoom(roomId: string) {
                 .single();
 
             if (roomError) {
-                console.error("Room fetch error:", roomError);
-                // Em um cenário offline/mock onde o Supabase não está configurado,
-                // geramos dados dummy para não travar o MVP
+                console.error("Room fetch error:", roomError.message, roomError.details);
                 if (mounted) {
-                    setRoom({
-                        id: 'mock-uuid',
-                        code: roomId.replace('sala-', ''),
-                        host_id: 'mock-device-id',
-                        status: 'active',
-                        tip_split_mode: 'equal',
-                        bill_split_mode: 'equal'
-                    });
                     setLoading(false);
                 }
+                Alert.alert("Erro ao buscar sala", roomError.message);
                 return;
             }
 
@@ -93,20 +85,12 @@ export function useRoom(roomId: string) {
     }, [roomId]);
 
     const addItem = async (name: string, price: number) => {
-        // Optimistic UI update for MVP local feel
-        const newItem: Item = {
-            id: Math.random().toString(),
-            room_id: room?.id || 'mock-uuid',
-            name,
-            price,
-        };
-
-        setItems((prev) => [...prev, newItem]);
+        if (!room?.id) return;
 
         // Async push to Supabase
         const { error } = await supabase.from('items').insert([
             {
-                room_id: room?.id,
+                room_id: room.id,
                 name,
                 price,
                 // consumer_id: deviceId
@@ -114,7 +98,8 @@ export function useRoom(roomId: string) {
         ]);
 
         if (error) {
-            console.warn("Could not sync item to Supabase (Expected if credentials are not set)", error);
+            console.error("Erro ao sincronizar item no Supabase:", error.message, error.details);
+            Alert.alert("Erro ao adicionar item", error.message);
         }
     };
 
