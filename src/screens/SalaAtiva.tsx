@@ -3,8 +3,6 @@ import { View, Text, FlatList, TouchableOpacity, Modal, TextInput } from 'react-
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { styles } from './SalaAtiva.styles';
-import { RouteProp } from '@react-navigation/native';
-import { RootStackParamList } from '../navigation/AppNavigator';
 
 type SalaAtivaScreenRouteProp = RouteProp<RootStackParamList, 'SalaAtiva'>;
 
