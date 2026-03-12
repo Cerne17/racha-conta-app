@@ -16,7 +16,7 @@ Aplicação mobile para divisão de despesas de restaurante em tempo real, utili
 - **RNF03 - UI/UX:** Interface minimalista focada em uso rápido (ambiente de restaurante).
 
 ## 3. Regras de Negócio (RN)
-- **RN01:** O código de 6 dígitos expira após 1 hora de inatividade da sala.
+- **RN01:** O código de 6 dígitos expira após 12 horas de inatividade da sala.
 - **RN02:** Apenas o "Host" (criador) pode fechar a conta final, mas todos podem adicionar itens.
 - **RN03:** O cálculo deve suportar divisão proporcional (ex: uma pizza dividida por 3 pessoas).
 - **RN04 - Modalidades de Divisão de Conta:** Divisão igualitária, ou por consumo individual.
