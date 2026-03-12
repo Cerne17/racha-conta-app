@@ -174,4 +174,25 @@ export const styles = StyleSheet.create({
         color: '#fff',
         fontWeight: 'bold',
     },
+    hostButtonContainer: {
+        position: 'absolute',
+        bottom: 30,
+        left: 30,
+    },
+    hostButton: {
+        backgroundColor: '#FF3B30',
+        paddingVertical: 15,
+        paddingHorizontal: 20,
+        borderRadius: 30,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    hostButtonText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
 });

@@ -12,10 +12,11 @@ type Props = {
 };
 
 export default function SalaAtiva({ route }: Props) {
-    const { roomId } = route.params;
+    const { roomId, isHost } = route.params;
     const { items, room, loading, addItem } = useRoom(roomId);
 
     const [modalVisible, setModalVisible] = useState(false);
+    const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
     const [newItemName, setNewItemName] = useState('');
     const [newItemPrice, setNewItemPrice] = useState('');
 
@@ -101,6 +102,14 @@ export default function SalaAtiva({ route }: Props) {
                 <Text style={styles.fabIcon}>+</Text>
             </TouchableOpacity>
 
+            {isHost && (
+                <View style={styles.hostButtonContainer}>
+                    <TouchableOpacity style={styles.hostButton} onPress={() => setCheckoutModalVisible(true)}>
+                        <Text style={styles.hostButtonText}>Fechar Conta</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+
             <Modal
                 visible={modalVisible}
                 animationType="slide"
@@ -143,6 +152,42 @@ export default function SalaAtiva({ route }: Props) {
                                 onPress={handleAddItem}
                             >
                                 <Text style={styles.addButtonText}>Adicionar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal
+                visible={checkoutModalVisible}
+                animationType="fade"
+                transparent={true}
+                onRequestClose={() => setCheckoutModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Resumo da Verificação</Text>
+
+                        <Text style={styles.inputLabel}>Total Produtos: {formatCurrency(total)}</Text>
+                        <Text style={styles.inputLabel}>Gorjeta / Taxa (10%): {formatCurrency(total * 0.1)}</Text>
+                        <Text style={[styles.inputLabel, { fontSize: 18, color: '#007AFF' }]}>Total da Mesa: {formatCurrency(total * 1.1)}</Text>
+
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={[styles.button, styles.cancelButton]}
+                                onPress={() => setCheckoutModalVisible(false)}
+                            >
+                                <Text style={styles.cancelButtonText}>Voltar</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.button, styles.addButton]}
+                                onPress={() => {
+                                    setCheckoutModalVisible(false);
+                                    // Simulated close out logic for MVP
+                                }}
+                            >
+                                <Text style={styles.addButtonText}>Encerrar Mesa</Text>
                             </TouchableOpacity>
                         </View>
                     </View>

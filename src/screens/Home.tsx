@@ -37,7 +37,7 @@ export default function Home({ navigation }: Props) {
         }
 
         setLoading(false);
-        navigation.navigate('SalaAtiva', { roomId: `sala-${roomId}` });
+        navigation.navigate('SalaAtiva', { roomId: `sala-${roomId}`, isHost: true });
     };
 
     const handleJoinRoom = async () => {
@@ -55,7 +55,7 @@ export default function Home({ navigation }: Props) {
             }
 
             setLoading(false);
-            navigation.navigate('SalaAtiva', { roomId: `sala-${code}` });
+            navigation.navigate('SalaAtiva', { roomId: `sala-${code}`, isHost: false });
         }
     };
 
