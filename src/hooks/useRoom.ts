@@ -54,33 +54,44 @@ export function useRoom(roomId: string) {
                 .order('created_at', { ascending: true });
 
             if (mounted && itemsData) setItems(itemsData);
+
+            // Subscribe to real-time changes using the fetched room ID for scoping
+            const channelName = `room_${roomData.id}`;
+            const itemsSubscription = supabase
+                .channel(channelName)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'items',
+                        filter: `room_id=eq.${roomData.id}`
+                    },
+                    (payload) => {
+                        const newItem = payload.new as Item;
+                        setItems((prev) => {
+                            if (prev.some(item => item.id === newItem.id)) return prev;
+                            return [...prev, newItem];
+                        });
+                    }
+                )
+                .subscribe();
+
             if (mounted) setLoading(false);
+
+            return itemsSubscription;
         }
 
-        fetchRoomAndItems();
-
-        // Subscribe to real-time changes
-        const itemsSubscription = supabase
-            .channel('public:items')
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'items',
-                    // Note: filter by room_id in a real scenario
-                },
-                (payload) => {
-                    if (payload.eventType === 'INSERT') {
-                        setItems((prev) => [...prev, payload.new as Item]);
-                    }
-                }
-            )
-            .subscribe();
+        let subscription: any = null;
+        fetchRoomAndItems().then(sub => {
+            subscription = sub;
+        });
 
         return () => {
             mounted = false;
-            supabase.removeChannel(itemsSubscription);
+            if (subscription) {
+                supabase.removeChannel(subscription);
+            }
         };
     }, [roomId]);
 
