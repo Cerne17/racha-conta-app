@@ -75,7 +75,7 @@ export default function SalaAtiva({ route }: Props) {
                 </View>
             </View>
 
-            <Text style={styles.subtitle}>Itens Consumidos (RF04)</Text>
+            <Text style={styles.subtitle}>Itens Consumidos</Text>
 
             {items.length === 0 ? (
                 <View style={styles.emptyState}>
@@ -108,6 +108,7 @@ export default function SalaAtiva({ route }: Props) {
                         <TextInput
                             style={styles.input}
                             placeholder="Ex: Cerveja"
+                            placeholderTextColor="#999"
                             value={newItemName}
                             onChangeText={setNewItemName}
                         />
@@ -116,6 +117,7 @@ export default function SalaAtiva({ route }: Props) {
                         <TextInput
                             style={styles.input}
                             placeholder="Ex: 15,50"
+                            placeholderTextColor="#999"
                             keyboardType="numeric"
                             value={newItemPrice}
                             onChangeText={setNewItemPrice}
