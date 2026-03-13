@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Modal, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Modal, TextInput, ActivityIndicator, Alert, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import RNPickerSelect from 'react-native-picker-select';
 import { supabase } from '../services/supabase';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -21,8 +22,10 @@ export default function SalaAtiva({ route }: Props) {
     const [summaryModalVisible, setSummaryModalVisible] = useState(false);
     const [newItemName, setNewItemName] = useState('');
     const [newItemPrice, setNewItemPrice] = useState('');
+    const [newItemQuantity, setNewItemQuantity] = useState('1');
     const [billSplitMode, setBillSplitMode] = useState<'equal' | 'individual'>('equal');
     const [tipSplitMode, setTipSplitMode] = useState<'equal' | 'proportional'>('equal');
+    const [checkoutTipPercentage, setCheckoutTipPercentage] = useState('10');
 
     useEffect(() => {
         if (room?.status === 'closed') {
@@ -42,25 +45,45 @@ export default function SalaAtiva({ route }: Props) {
         const priceValue = parseInt(newItemPrice, 10) / 100;
         if (isNaN(priceValue) || priceValue <= 0) return;
 
-        await addItem(newItemName, priceValue);
+        const quantityValue = parseInt(newItemQuantity, 10);
+        if (isNaN(quantityValue) || quantityValue <= 0) return;
+
+        await addItem(newItemName, priceValue, quantityValue);
 
         setNewItemName('');
         setNewItemPrice('');
+        setNewItemQuantity('1');
         setModalVisible(false);
     };
 
     const handleCloseBill = async () => {
         if (!room) return;
         setCheckoutModalVisible(false);
+        const tipPercentage = parseFloat(checkoutTipPercentage);
+
         const { error } = await supabase.from('rooms').update({
             status: 'closed',
             bill_split_mode: billSplitMode,
-            tip_split_mode: tipSplitMode
+            tip_split_mode: tipSplitMode,
+            tip_percentage: isNaN(tipPercentage) ? 10 : tipPercentage
         }).eq('id', room.id);
 
         if (error) {
             console.error("Erro ao encerrar conta:", error);
             Alert.alert("Erro", "Não foi possível encerrar a conta.");
+        }
+    };
+
+    const handleReopenBill = async () => {
+        if (!room) return;
+        setSummaryModalVisible(false);
+        const { error } = await supabase.from('rooms').update({
+            status: 'active'
+        }).eq('id', room.id);
+
+        if (error) {
+            console.error("Erro ao reabrir conta:", error);
+            Alert.alert("Erro", "Não foi possível reabrir a conta.");
         }
     };
 
@@ -114,7 +137,8 @@ export default function SalaAtiva({ route }: Props) {
     }
 
     // The summary modal UI calculation
-    const tipValue = total * 0.1;
+    const tipPercentageValue = room?.tip_percentage ?? 10;
+    const tipValue = total * (tipPercentageValue / 100);
     const totalWithTip = total + tipValue;
 
     let myFinalAmount = 0;
@@ -193,8 +217,12 @@ export default function SalaAtiva({ route }: Props) {
                 transparent={true}
                 onRequestClose={() => setModalVisible(false)}
             >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={Keyboard.dismiss}
+                >
+                    <TouchableOpacity activeOpacity={1} style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Adicionar Item</Text>
 
                         <Text style={styles.inputLabel}>Nome do Produto</Text>
@@ -212,8 +240,26 @@ export default function SalaAtiva({ route }: Props) {
                             placeholder="Ex: 15,50"
                             placeholderTextColor="#999"
                             keyboardType="numeric"
+                            returnKeyType="done"
                             value={getFormattedPriceInput()}
                             onChangeText={handlePriceChange}
+                        />
+
+                        <Text style={styles.inputLabel}>Quantidade</Text>
+                        <RNPickerSelect
+                            onValueChange={(value: string | null) => {
+                                if (value !== null) setNewItemQuantity(value);
+                            }}
+                            value={newItemQuantity}
+                            items={Array.from({ length: 30 }, (_, i) => ({ label: (i + 1).toString(), value: (i + 1).toString() }))}
+                            placeholder={{}}
+                            style={{
+                                inputIOS: [styles.input, { marginBottom: 20, color: '#000', height: 50, justifyContent: 'center' }],
+                                inputAndroid: [styles.input, { marginBottom: 20, color: '#000', height: 50, justifyContent: 'center' }],
+                                viewContainer: { width: '100%', height: 50, justifyContent: 'center' }
+                            }}
+                            touchableWrapperProps={{ activeOpacity: 0.5, style: { width: '100%', height: 50, justifyContent: 'center' } }}
+                            useNativeAndroidPickerStyle={false}
                         />
 
                         <View style={styles.modalButtons}>
@@ -231,8 +277,8 @@ export default function SalaAtiva({ route }: Props) {
                                 <Text style={styles.addButtonText}>Adicionar</Text>
                             </TouchableOpacity>
                         </View>
-                    </View>
-                </View>
+                    </TouchableOpacity>
+                </TouchableOpacity>
             </Modal>
 
             <Modal
@@ -255,7 +301,22 @@ export default function SalaAtiva({ route }: Props) {
                             </TouchableOpacity>
                         </View>
 
-                        <Text style={styles.inputLabel}>Gorjeta (10%)</Text>
+                        <Text style={styles.inputLabel}>Gorjeta (%)</Text>
+                        <RNPickerSelect
+                            onValueChange={(value: string) => {
+                                if (value !== null) setCheckoutTipPercentage(value);
+                            }}
+                            value={checkoutTipPercentage}
+                            items={Array.from({ length: 31 }, (_, i) => ({ label: `${i}%`, value: i.toString() }))}
+                            placeholder={{}}
+                            style={{
+                                inputIOS: [styles.input, { marginBottom: 10, color: '#000', height: 50, justifyContent: 'center' }],
+                                inputAndroid: [styles.input, { marginBottom: 10, color: '#000', height: 50, justifyContent: 'center' }],
+                                viewContainer: { width: '100%', height: 50, justifyContent: 'center' }
+                            }}
+                            touchableWrapperProps={{ activeOpacity: 0.5, style: { width: '100%', height: 50, justifyContent: 'center' } }}
+                            useNativeAndroidPickerStyle={false}
+                        />
                         <View style={styles.radioGroup}>
                             <TouchableOpacity onPress={() => setTipSplitMode('equal')} style={[styles.radio, tipSplitMode === 'equal' && styles.radioActive]}>
                                 <Text style={[styles.radioText, tipSplitMode === 'equal' && styles.radioTextActive]}>Igualitária</Text>
@@ -266,8 +327,8 @@ export default function SalaAtiva({ route }: Props) {
                         </View>
 
                         <Text style={styles.inputLabel}>Total Produtos: {formatCurrency(total)}</Text>
-                        <Text style={styles.inputLabel}>Gorjeta / Taxa (10%): {formatCurrency(total * 0.1)}</Text>
-                        <Text style={[styles.inputLabel, { fontSize: 18, color: '#007AFF' }]}>Total da Mesa: {formatCurrency(total * 1.1)}</Text>
+                        <Text style={styles.inputLabel}>Gorjeta / Taxa ({checkoutTipPercentage}%): {formatCurrency(total * ((parseFloat(checkoutTipPercentage) || 0) / 100))}</Text>
+                        <Text style={[styles.inputLabel, { fontSize: 18, color: '#007AFF' }]}>Total da Mesa: {formatCurrency(total * (1 + ((parseFloat(checkoutTipPercentage) || 0) / 100)))}</Text>
 
                         {billSplitMode === 'individual' && unassignedItems.length > 0 && (
                             <Text style={styles.errorText}>Atenção: Existem itens sem dono na mesa. Assinale-os para fechar conta individual.</Text>
@@ -309,7 +370,7 @@ export default function SalaAtiva({ route }: Props) {
                         </View>
 
                         <View style={[styles.card, { width: '100%', marginBottom: 20 }]}>
-                            <Text style={styles.cardLabel}>Sua Gorjeta (10%)</Text>
+                            <Text style={styles.cardLabel}>Sua Gorjeta ({tipPercentageValue}%)</Text>
                             <Text style={[styles.cardValue, { color: '#666' }]}>{formatCurrency(myTipAmount)}</Text>
                         </View>
 
@@ -326,6 +387,15 @@ export default function SalaAtiva({ route }: Props) {
                         >
                             <Text style={styles.cancelButtonText}>Voltar para a Mesa</Text>
                         </TouchableOpacity>
+
+                        {isHost && (
+                            <TouchableOpacity
+                                style={[styles.button, styles.addButton, { marginTop: 10, backgroundColor: '#FF3B30', borderColor: '#FF3B30' }]}
+                                onPress={handleReopenBill}
+                            >
+                                <Text style={styles.addButtonText}>Reabrir Mesa (Corrigir Erro)</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
             </Modal>

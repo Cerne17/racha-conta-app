@@ -17,6 +17,7 @@ export interface Room {
     status: string;
     tip_split_mode: string;
     bill_split_mode: string;
+    tip_percentage: number;
 }
 
 export function useRoom(roomId: string) {
@@ -103,18 +104,17 @@ export function useRoom(roomId: string) {
         };
     }, [roomId]);
 
-    const addItem = async (name: string, price: number) => {
+    const addItem = async (name: string, price: number, quantity: number = 1) => {
         if (!room?.id) return;
 
+        const itemsToInsert = Array.from({ length: quantity }).map(() => ({
+            room_id: room.id,
+            name,
+            price,
+        }));
+
         // Async push to Supabase
-        const { error } = await supabase.from('items').insert([
-            {
-                room_id: room.id,
-                name,
-                price,
-                // consumer_id: deviceId
-            },
-        ]);
+        const { error } = await supabase.from('items').insert(itemsToInsert);
 
         if (error) {
             console.error("Erro ao sincronizar item no Supabase:", error.message, error.details);

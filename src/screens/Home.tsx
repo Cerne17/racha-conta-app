@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, Alert, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -77,36 +77,40 @@ export default function Home({ navigation }: Props) {
                 return;
             }
 
-            navigation.navigate('SalaAtiva', { roomId: `sala-${code}`, isHost: false, deviceId });
+            const isUserHost = data.host_id === deviceId;
+            navigation.navigate('SalaAtiva', { roomId: `sala-${code}`, isHost: isUserHost, deviceId });
         }
     };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Racha Conta</Text>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.container}>
+                <Text style={styles.title}>Racha Conta</Text>
 
-            <TouchableOpacity style={styles.button} onPress={handleCreateRoom} disabled={loading}>
-                {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Criar Nova Sala</Text>}
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.button} onPress={handleCreateRoom} disabled={loading}>
+                    {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Criar Nova Sala</Text>}
+                </TouchableOpacity>
 
-            <View style={styles.separator} />
+                <View style={styles.separator} />
 
-            <Text style={styles.subtitle}>Ou entre com um código</Text>
-            <TextInput
-                style={styles.input}
-                placeholder="Código de 6 dígitos"
-                keyboardType="numeric"
-                maxLength={6}
-                value={code}
-                onChangeText={setCode}
-            />
-            <TouchableOpacity
-                style={[styles.button, code.length !== 6 && styles.buttonDisabled]}
-                onPress={handleJoinRoom}
-                disabled={code.length !== 6 || loading}
-            >
-                {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Entrar na Sala</Text>}
-            </TouchableOpacity>
-        </View>
+                <Text style={styles.subtitle}>Ou entre com um código</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Código de 6 dígitos"
+                    keyboardType="numeric"
+                    returnKeyType="done"
+                    maxLength={6}
+                    value={code}
+                    onChangeText={setCode}
+                />
+                <TouchableOpacity
+                    style={[styles.button, code.length !== 6 && styles.buttonDisabled]}
+                    onPress={handleJoinRoom}
+                    disabled={code.length !== 6 || loading}
+                >
+                    {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Entrar na Sala</Text>}
+                </TouchableOpacity>
+            </View>
+        </TouchableWithoutFeedback>
     );
 }
