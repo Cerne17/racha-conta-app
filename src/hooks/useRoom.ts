@@ -7,7 +7,7 @@ export interface Item {
     room_id: string;
     name: string;
     price: number;
-    consumer_id?: string;
+    consumer_id: string | null;
 }
 
 export interface Room {
@@ -62,17 +62,25 @@ export function useRoom(roomId: string) {
                 .on(
                     'postgres_changes',
                     {
-                        event: 'INSERT',
+                        event: '*',
                         schema: 'public',
                         table: 'items',
                         filter: `room_id=eq.${roomData.id}`
                     },
                     (payload) => {
-                        const newItem = payload.new as Item;
-                        setItems((prev) => {
-                            if (prev.some(item => item.id === newItem.id)) return prev;
-                            return [...prev, newItem];
-                        });
+                        if (payload.eventType === 'INSERT') {
+                            const newItem = payload.new as Item;
+                            setItems((prev) => {
+                                if (prev.some(item => item.id === newItem.id)) return prev;
+                                return [...prev, newItem];
+                            });
+                        } else if (payload.eventType === 'UPDATE') {
+                            const updatedItem = payload.new as Item;
+                            setItems((prev) => prev.map(item => item.id === updatedItem.id ? updatedItem : item));
+                        } else if (payload.eventType === 'DELETE') {
+                            const deletedItem = payload.old as Item;
+                            setItems((prev) => prev.filter(item => item.id !== deletedItem.id));
+                        }
                     }
                 )
                 .subscribe();
@@ -114,5 +122,48 @@ export function useRoom(roomId: string) {
         }
     };
 
-    return { items, room, loading, addItem };
+    const toggleItemClaim = async (item: Item, deviceId: string) => {
+        const newConsumerId = item.consumer_id === deviceId ? null : deviceId;
+
+        // Optimistic update
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, consumer_id: newConsumerId } : i));
+
+        const { error } = await supabase.from('items')
+            .update({ consumer_id: newConsumerId })
+            .eq('id', item.id);
+
+        if (error) {
+            console.error("Erro ao atualizar item no Supabase:", error.message, error.details);
+            Alert.alert("Erro ao assinalar item", error.message);
+            // Revert optimistic update
+            setItems(prev => prev.map(i => i.id === item.id ? { ...i, consumer_id: item.consumer_id } : i));
+        }
+    };
+
+    const refreshData = async () => {
+        setLoading(true);
+        try {
+            const { data: roomData } = await supabase
+                .from('rooms')
+                .select('*')
+                .eq('code', roomId.replace('sala-', ''))
+                .single();
+
+            if (roomData) {
+                setRoom(roomData);
+                const { data: itemsData } = await supabase
+                    .from('items')
+                    .select('*')
+                    .eq('room_id', roomData.id)
+                    .order('created_at', { ascending: true });
+                if (itemsData) setItems(itemsData);
+            }
+        } catch (e) {
+            console.error("Erro ao recarregar dados", e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return { items, room, loading, addItem, toggleItemClaim, refreshData };
 }

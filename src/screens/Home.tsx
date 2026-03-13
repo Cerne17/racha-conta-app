@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { styles } from './Home.styles';
@@ -14,11 +15,28 @@ type Props = {
 export default function Home({ navigation }: Props) {
     const [code, setCode] = useState('');
     const [loading, setLoading] = useState(false);
+    const [deviceId, setDeviceId] = useState('');
+
+    useEffect(() => {
+        async function fetchDeviceId() {
+            try {
+                let id = await AsyncStorage.getItem('device_id');
+                if (!id) {
+                    id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+                    await AsyncStorage.setItem('device_id', id);
+                }
+                setDeviceId(id);
+            } catch (e) {
+                console.error("Failed to load or generate device_id", e);
+                setDeviceId(Math.random().toString());
+            }
+        }
+        fetchDeviceId();
+    }, []);
 
     const handleCreateRoom = async () => {
         setLoading(true);
         const roomId = Math.floor(100000 + Math.random() * 900000).toString();
-        const deviceId = Math.random().toString(36).substring(7); // In a real app, use DeviceInfo
 
         const { error } = await supabase.from('rooms').insert([
             {
@@ -39,7 +57,7 @@ export default function Home({ navigation }: Props) {
             return;
         }
 
-        navigation.navigate('SalaAtiva', { roomId: `sala-${roomId}`, isHost: true });
+        navigation.navigate('SalaAtiva', { roomId: `sala-${roomId}`, isHost: true, deviceId });
     };
 
     const handleJoinRoom = async () => {
@@ -59,7 +77,7 @@ export default function Home({ navigation }: Props) {
                 return;
             }
 
-            navigation.navigate('SalaAtiva', { roomId: `sala-${code}`, isHost: false });
+            navigation.navigate('SalaAtiva', { roomId: `sala-${code}`, isHost: false, deviceId });
         }
     };
 

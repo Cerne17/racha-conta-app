@@ -6,7 +6,7 @@ import SalaAtiva from '../screens/SalaAtiva';
 
 export type RootStackParamList = {
     Home: undefined;
-    SalaAtiva: { roomId: string; isHost?: boolean };
+    SalaAtiva: { roomId: string; isHost?: boolean; deviceId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

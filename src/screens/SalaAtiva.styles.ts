@@ -195,4 +195,35 @@ export const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 14,
     },
+    radioGroup: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 5,
+        marginBottom: 15,
+    },
+    radio: {
+        flex: 1,
+        paddingVertical: 10,
+        backgroundColor: '#f5f5f5',
+        borderRadius: 8,
+        alignItems: 'center',
+        marginHorizontal: 5,
+    },
+    radioActive: {
+        backgroundColor: '#007AFF',
+    },
+    radioText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+    radioTextActive: {
+        color: '#fff',
+    },
+    errorText: {
+        color: '#FF3B30',
+        fontSize: 12,
+        marginTop: 10,
+        textAlign: 'center',
+    },
 });
